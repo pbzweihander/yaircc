@@ -1,0 +1,32 @@
+version: 2.1
+
+workflows:
+  test:
+    jobs:
+      - test
+
+jobs:
+  test:
+    docker:
+      - image: rustlang/rust:nightly-slim
+    working_directory: /app
+    steps:
+      - run: |
+          rustc --version
+      - run: |
+          rustup component add rustfmt clippy
+      - checkout
+      - restore_cache:
+          keys:
+            - cache-v1-{{ .Branch }}-{{ checksum "Cargo.toml" }}
+            - cache-v1-{{ .Branch }}-
+            - cache-v1-
+      - run: |
+          bash ci/lint.sh
+      - run: |
+          bash ci/test.sh
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target/debug/deps
+          key: cache-v1-{{ .Branch }}-{{ checksum "Cargo.toml" }}

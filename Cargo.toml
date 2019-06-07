@@ -1,0 +1,30 @@
+[package]
+name = "yaircc"
+version = "0.0.0"
+authors = ["pbzweihander <pbzweihander@gmail.com>"]
+description = "Yet Another low level IRC Client library"
+
+documentation = "https://docs.rs/yaircc/"
+homepage = "https://github.com/pbzweihander/yaircc"
+repository = "https://github.com/pbzweihander/yaircc"
+
+keywords = ["irc", "client"]
+readme = "README.md"
+license = "MIT/Apache-2.0"
+
+edition = "2018"
+build = "build.rs"
+
+[dependencies]
+encoding = "0.2.33"
+futures-preview = "0.3.0-alpha.16"
+memchr = "2.2.0"
+
+[dev-dependencies]
+runtime = "0.3.0-alpha.4"
+failure = "0.1.5"
+tokio = "0.1.21"
+futures-preview = { version = "0.3.0-alpha.16", features = ["io-compat"] }
+
+[badges]
+circle-ci = { repository = "pbzweihander/yaircc", branch = "master" }
