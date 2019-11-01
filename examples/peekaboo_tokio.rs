@@ -1,48 +1,49 @@
-#![feature(async_await)]
-#![allow(clippy::single_match)]
-
 use {
     encoding::all::UTF_8,
     failure::Fallible,
-    futures::{compat::*, prelude::*, task::*},
+    futures::{compat::*, prelude::*},
     std::{env, net::ToSocketAddrs},
     tokio::net::TcpStream,
     yaircc::{Code, IrcStream, Message, Prefix, StreamError, Writer},
 };
 
+macro_rules! write_irc {
+    ($writer:expr, $($arg:tt)*) => {
+        let msg = format!($($arg)*);
+        $writer.raw(msg).await?;
+    }
+}
+
 async fn for_each_message(
-    writer: Writer<Compat01As03<TcpStream>>,
-    channel: String,
+    writer: &Writer<Compat01As03<TcpStream>>,
+    channel: &str,
     msg: Result<Message, StreamError>,
 ) -> Fallible<()> {
-    println!("{:?}", msg);
     match msg {
         Ok(msg) => {
-            if msg.code == Code::RplWelcome {
-                // join channel, no password
-                writer.raw(format!("JOIN {}\n", channel)).await?;
-            }
-            // JOIN is sent when you join a channel.
-            if msg.code == Code::Join {
-                // If there is a prefix...
-                if let Some(prefix) = msg.prefix {
-                    match prefix {
-                        // And the prefix is a user...
-                        Prefix::User(user) => {
-                            // And that user's nick is peekaboo, we've joined the channel!
-                            if user.nickname == "peekaboo" {
-                                writer
-                                    .raw(format!("PRIVMSG {} :{}\n", channel, "peekaboo"))
-                                    .await?;
-                                // Note that if the reconnection settings said to reconnect,
-                                // it would. Close would "really" stop it.
-                                writer.raw(format!("QUIT :{}\n", "peekaboo")).await?;
-                                // writer.close();
-                            }
+            println!("{:?}", msg);
+            match msg.code {
+                Code::RplWelcome => {
+                    // join channel, no password
+                    write_irc!(writer, "JOIN {}\n", channel);
+                }
+                // JOIN is sent when you join a channel.
+                Code::Join => {
+                    // If there is a prefix and the prefix is a user...
+                    if let Some(Prefix::User(user)) = msg.prefix {
+                        // And that user's nick is peekaboo, we've joined the channel!
+                        if user.nickname == "peekaboo" {
+                            write_irc!(writer, "PRIVMSG {} :{}\n", channel, "peekaboo");
+                            // Note that if the reconnection settings said to reconnect,
+                            // it would. Close would "really" stop it.
+                            write_irc!(writer, "QUIT :{}\n", "peekaboo");
                         }
-                        _ => {}
                     }
                 }
+                Code::Ping => {
+                    write_irc!(writer, "PONG {}\n", msg.args.join(" "));
+                }
+                _ => {}
             }
         }
         Err(e) => eprintln!("{}", e),
@@ -51,7 +52,7 @@ async fn for_each_message(
     Ok(())
 }
 
-async fn async_main() -> Fallible<()> {
+fn get_args() -> (String, String) {
     let args: Vec<String> = env::args().collect();
     let server = args.get(1);
     let channel = args.get(2);
@@ -60,7 +61,12 @@ async fn async_main() -> Fallible<()> {
         eprintln!("Usage: {} <SERVER> <CHANNEL>", args[0]);
         std::process::exit(1)
     }
-    let (server, channel) = (server.unwrap(), channel.unwrap());
+
+    (server.unwrap().clone(), channel.unwrap().clone())
+}
+
+async fn async_main() -> Fallible<()> {
+    let (server, channel) = get_args();
 
     let mut addrs = server.to_socket_addrs()?;
     let stream_fut = Compat01As03::new(TcpStream::connect(&addrs.next().unwrap()));
@@ -68,23 +74,17 @@ async fn async_main() -> Fallible<()> {
     let irc_stream = IrcStream::new(stream, UTF_8);
     let writer = irc_stream.writer();
 
-    writer
-        .raw(format!("USER {} 8 * :{}\n", "peekaboo", "peekaboo"))
-        .await?;
-    writer.raw(format!("NICK {}\n", "peekaboo")).await?;
+    write_irc!(writer, "USER {} 8 * :{}\n", "peekaboo", "peekaboo");
+    write_irc!(writer, "NICK {}\n", "peekaboo");
 
     irc_stream
-        .then(|msg| for_each_message(writer.clone(), channel.clone(), msg))
+        .then(|msg| for_each_message(&writer, &channel, msg))
         .try_collect::<()>()
         .err_into()
         .await
 }
 
 fn main() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let mut ex = rt.executor().compat();
-    let fut = async_main().map_err(|err| eprintln!("{}", err)).map(|_| ());
-
-    let handle_fut = ex.spawn_with_handle(fut).unwrap();
-    futures::executor::block_on(handle_fut);
+    let fut = async_main().map_err(|err| eprintln!("{}", err));
+    tokio::run(fut.boxed().compat());
 }
