@@ -16,15 +16,17 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
+# rustc 1.39.0-beta.8 (f6404c5a9 2019-10-30)
+
 encoding = "0.2.33"
-futures-preview = "0.3.0-alpha.16"
-memchr = "2.2.0"
+futures-preview = "0.3.0-alpha.19"
+memchr = "2.2.1"
 
 [dev-dependencies]
-runtime = "0.3.0-alpha.4"
-failure = "0.1.5"
-tokio = "0.1.21"
-futures-preview = { version = "0.3.0-alpha.16", features = ["io-compat"] }
+runtime = "0.3.0-alpha.8"
+failure = "0.1.6"
+tokio = "0.1.22"
+futures-preview = { version = "0.3.0-alpha.19", features = ["io-compat"] }
 
 [badges]
 circle-ci = { repository = "pbzweihander/yaircc", branch = "master" }

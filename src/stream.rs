@@ -56,7 +56,6 @@ impl<S> Writer<S>
 where
     S: AsyncWrite + Unpin,
 {
-    #[allow(clippy::needless_lifetimes)]
     pub async fn raw(&self, msg: impl AsRef<str>) -> Result<(), IoError> {
         let bytes = self
             .encoding

@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 mod code;
 mod message;
 mod stream;
