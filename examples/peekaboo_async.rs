@@ -1,9 +1,9 @@
 use {
+    async_std::{net::TcpStream, task},
     encoding::all::UTF_8,
     failure::Fallible,
-    futures::{compat::*, prelude::*},
-    std::{env, net::ToSocketAddrs},
-    tokio::net::TcpStream,
+    futures::prelude::*,
+    std::env,
     yaircc::{Code, IrcStream, Message, Prefix, StreamError, Writer},
 };
 
@@ -15,7 +15,7 @@ macro_rules! write_irc {
 }
 
 async fn for_each_message(
-    writer: &Writer<Compat01As03<TcpStream>>,
+    writer: &Writer<TcpStream>,
     channel: &str,
     msg: Result<Message, StreamError>,
 ) -> Fallible<()> {
@@ -68,9 +68,7 @@ fn get_args() -> (String, String) {
 async fn async_main() -> Fallible<()> {
     let (server, channel) = get_args();
 
-    let mut addrs = server.to_socket_addrs()?;
-    let stream_fut = Compat01As03::new(TcpStream::connect(&addrs.next().unwrap()));
-    let stream = Compat01As03::new(stream_fut.await?);
+    let stream = TcpStream::connect(server).await?;
     let irc_stream = IrcStream::new(stream, UTF_8);
     let writer = irc_stream.writer();
 
@@ -84,7 +82,8 @@ async fn async_main() -> Fallible<()> {
         .await
 }
 
-fn main() {
-    let fut = async_main().map_err(|err| eprintln!("{}", err));
-    tokio::run(fut.boxed().compat());
+fn main() -> Fallible<()> {
+    let fut = async_main();
+    task::block_on(fut)?;
+    Ok(())
 }

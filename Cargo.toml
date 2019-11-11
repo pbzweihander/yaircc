@@ -1,6 +1,6 @@
 [package]
 name = "yaircc"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["pbzweihander <pbzweihander@gmail.com>"]
 description = "Yet Another low level IRC Client library"
 
@@ -16,17 +16,13 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
-# rustc 1.39.0-beta.8 (f6404c5a9 2019-10-30)
-
 encoding = "0.2.33"
-futures-preview = "0.3.0-alpha.19"
+futures = "0.3.1"
 memchr = "2.2.1"
 
 [dev-dependencies]
-runtime = "0.3.0-alpha.8"
 failure = "0.1.6"
-tokio = "0.1.22"
-futures-preview = { version = "0.3.0-alpha.19", features = ["io-compat"] }
+async-std = "0.99.12"
 
 [badges]
 circle-ci = { repository = "pbzweihander/yaircc", branch = "master" }
